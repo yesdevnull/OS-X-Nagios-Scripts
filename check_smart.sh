@@ -7,34 +7,75 @@
 #	v1.0 - 9 Aug 2013
 #	Initial release.
 
-#	
+#
+
+disk=""
+graphs=""
+graphString=""
+
+badSectors=0
+reallocSectors=0
+
+while getopts "d:g:" opt
+	do
+		case $opt in
+			d ) disk=$OPTARG;;
+			g ) graphs=$OPTARG;;
+		esac
+done
 
 # enable SMART on the drive if it is not already
-smartoncmd=`/opt/local/libexec/nagios/smartctl --smart=on --saveauto=on $1`
+smartoncmd=`/opt/local/libexec/nagios/smartctl --smart=on --saveauto=on $disk`
 
-resultString=`/opt/local/libexec/nagios/smartctl -H $1`
+resultString=`/opt/local/libexec/nagios/smartctl -H $disk`
 
-badSectors=`/opt/local/libexec/nagios/smartctl -a $1 | grep -C 0 'Reallocated_Sector_Ct' | grep -E -o "[0-9]+" | tail -1`
-reallocSectors=`/opt/local/libexec/nagios/smartctl -a $1 | grep -C 0 'Reallocated_Event_Count' | grep -E -o "[0-9]+" | tail -1`
-powerOnHours=`/opt/local/libexec/nagios/smartctl -a $1 | grep -C 0 'Power_On_Hours' | grep -E -o "[0-9]+" | tail -1`
+if [ "$graphs" != "" ]
+then
+	graphString="|"
+fi
 
-if [ $reallocSectors -gt 0 -o $badSectors -gt 0 ]; then
-	printf "CRITICAL - Drive has bad sectors, but S.M.A.R.T. status is OK | badSectors=$badSectors; reallocSectors=$reallocSectors; powerOnHours=$powerOnHours;\n"
+if echo $graphs | grep -q "badSectors"
+then
+	badSectors=`/opt/local/libexec/nagios/smartctl -a $disk | grep -C 0 'Reallocated_Sector_Ct' | grep -E -o "[0-9]+" | tail -1 `
+	graphString="$graphString badSectors=$badSectors;"
+fi
+
+if echo $graphs | grep -q "reallocSectors"
+then
+	reallocSectors=`/opt/local/libexec/nagios/smartctl -a $disk | grep -C 0 'Reallocated_Event_Count' | grep -E -o "[0-9]+" | tail -1`
+	graphString="$graphString reallocSectors=$reallocSectors;"
+fi
+
+if echo $graphs | grep -q "powerOnHours"
+then
+	powerOnHours=`/opt/local/libexec/nagios/smartctl -a $disk | grep -C 0 'Power_On_Hours' | grep -E -o "[0-9]+" | tail -1`
+	graphString="$graphString powerOnHours=$powerOnHours;"
+fi
+
+#printf "bad sectors: $badSectors realloc: $reallocSectors\n\n"
+
+if [ $reallocSectors -gt 0 ] || [ $badSectors -gt 0 ]
+then
+	printf "CRITICAL - Drive has bad sectors, but S.M.A.R.T. status is OK $graphString\n"
 	exit 2
 fi
 
 if echo $resultString | grep -q "PASSED"
 then
-  	printf "OK - All S.M.A.R.T. attributes passed | badSectors=$badSectors; reallocSectors=$reallocSectors; powerOnHours=$powerOnHours;\n"
+  	printf "OK - All S.M.A.R.T. attributes passed $graphString\n"
   	exit 0
 else
 	failString=`echo $resultString | grep -C 0 'FAILING_NOW'`
 	if echo $failString | grep -q "Reallocated_Sector_Ct\|Reallocated_Event_Count"
 	then
-		printf "CRITICAL - Drive has bad sectors! | badSectors=$badSectors; reallocSectors=$reallocSectors; powerOnHours=$powerOnHours;\n"
+		printf "CRITICAL - Drive has bad sectors! $graphString\n"
+		exit 2
+	elif echo $failString | grep -q "Command_Timeout" 
+	then
+		printf "CRITICAL - Drive is having constant timeout issues! $graphString\n"
 		exit 2
 	else
-		printf "WARNING - Drive has failing S.M.A.R.T. attributes! | badSectors=$badSectors; reallocSectors=$reallocSectors; powerOnHours=$powerOnHours;\n"
+		printf "WARNING - Drive has failing S.M.A.R.T. attributes! $graphString\n"
 		exit 1
 	fi
 fi
