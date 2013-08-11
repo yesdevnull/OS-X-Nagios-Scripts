@@ -1,13 +1,27 @@
 #!/bin/bash
 
-#	Check SMART
+#	Check S.M.A.R.T. (check_smart.sh)
 #	by Dan Barrett
 #	http://yesdevnull.net
 
 #	v1.0 - 9 Aug 2013
 #	Initial release.
 
-#
+#	Read S.M.A.R.T. data from the specified disk using smartmontools
+#	(http://sourceforge.net/apps/trac/smartmontools/wiki)
+
+#	Arguments:
+#	-d	Drive BSD name (disk0/disk1 etc)
+#	-g	Graph item(s)
+
+#	Example:
+#	./check_smart.sh -d disk0 -g "badSectors tempCelcius"
+
+#	Performance Data
+#	* badSectors		Number of bad sectors on disk
+#	* reallocSectors	Number of re-allocated sectors on disk
+#	* powerOnHours		Number of hours the disk has been powered on for
+#	* tempCelcius		Temperature in celcius of the disk (internal)
 
 disk=""
 graphs=""
@@ -16,6 +30,7 @@ graphString=""
 badSectors=0
 reallocSectors=0
 
+# Get the flags!
 while getopts "d:g:" opt
 	do
 		case $opt in
@@ -76,7 +91,7 @@ else
 		exit 2
 	elif echo $failString | grep -q "Command_Timeout" 
 	then
-		printf "CRITICAL - Drive is having constant timeout issues! Check any power sources. $graphString\n"
+		printf "CRITICAL - Drive is having constant timeout issues, check any power sources! $graphString\n"
 		exit 2
 	elif echo $failString | grep -q "Temperature_Celsius"
 	then
