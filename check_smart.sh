@@ -55,6 +55,13 @@ then
 	graphString="$graphString powerOnHours=$powerOnHours;"
 fi
 
+# Did user want tempCelcius graph?
+if echo $graphs | grep -q "tempCelcius"
+then
+	internalTemp=`/opt/local/libexec/nagios/smartctl -a $disk | grep -C 0 'Temperature_Celsius' | grep -E -o "[0-9]+" | tail -1`
+	graphString="$graphString tempCelcius=$internalTemp;"
+fi
+
 if echo $resultString | grep -q "PASSED"
 then
   	printf "OK - All S.M.A.R.T. attributes passed $graphString\n"
@@ -70,6 +77,10 @@ else
 	elif echo $failString | grep -q "Command_Timeout" 
 	then
 		printf "CRITICAL - Drive is having constant timeout issues! Check any power sources. $graphString\n"
+		exit 2
+	elif echo $failString | grep -q "Temperature_Celsius"
+	then
+		printf "CRITICAL - Drive is exposed to extreme temperatures! $graphString\n"
 		exit 2
 	else
 		printf "WARNING - Drive has failing S.M.A.R.T. attributes! $graphString\n"
