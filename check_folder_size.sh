@@ -13,15 +13,19 @@
 #	./check_folder_size.sh -f /Library/Application\ Support/ -w 2048 -c 4096
 
 folderPath=""
+blockSize="m"
 warnThresh=""
 critThresh=""
 
-while getopts "f:w:c:" optionName; do
-case "$optionName" in
-f) folderPath=( $OPTARG );;
-w) warnThresh=( $OPTARG );;
-c) critThresh=( $OPTARG );;
-esac
+# Get the flags!
+while getopts "f:w:c:" opt
+	do
+		case $opt in
+			f ) folderPath=$OPTARG;;
+			b ) blockSize=$OPTARG;;
+			w ) warnThresh=$OPTARG;;
+			c ) critThresh=$OPTARG;;
+		esac
 done
 
 if [ "$folderPath" == "" ]; then
@@ -39,7 +43,7 @@ if [ "$critThresh" == "" ]; then
 	exit 2
 fi
 
-folderSize=`du -s $folderPath | grep -E -o "[0-9]+"`
+folderSize=`du -s$blockSize $folderPath | grep -E -o "[0-9]+"`
 
 if [ "$folderSize" -ge "$critThresh" ]; then
 	printf "CRITICAL - folder is $folderSize MB in size | folderSize=$folderSize;\n"
