@@ -14,11 +14,12 @@
 
 folderPath=""
 blockSize="m"
+blockSizeFriendly="MB"
 warnThresh=""
 critThresh=""
 
 # Get the flags!
-while getopts "f:w:c:" opt
+while getopts "f:b:w:c:" opt
 	do
 		case $opt in
 			f ) folderPath=$OPTARG;;
@@ -28,30 +29,45 @@ while getopts "f:w:c:" opt
 		esac
 done
 
-if [ "$folderPath" == "" ]; then
+if [ "$folderPath" == "" ]
+then
 	printf "ERROR - You must provide a file path with -f!\n"
 	exit 2
 fi
 
-if [ "$warnThresh" == "" ]; then
+if [ "$warnThresh" == "" ]
+then
 	printf "ERROR - You must provide a warning threshold with -w!\n"
 	exit 2
 fi
 
-if [ "$critThresh" == "" ]; then
+if [ "$critThresh" == "" ]
+then
 	printf "ERROR - You must provide a critical threshold with -c!\n"
 	exit 2
 fi
 
+if [ "$blockSize" == "k" ]
+then
+	blockSizeFriendly="KB"
+fi
+
+if [ "$blockSize" == "g" ]
+then
+	blockSizeFriendly="GB"
+fi
+
 folderSize=`du -s$blockSize $folderPath | grep -E -o "[0-9]+"`
 
-if [ "$folderSize" -ge "$critThresh" ]; then
-	printf "CRITICAL - folder is $folderSize MB in size | folderSize=$folderSize;\n"
+if [ "$folderSize" -ge "$critThresh" ]
+then
+	printf "CRITICAL - folder is $folderSize $blockSizeFriendly in size | folderSize=$folderSize;\n"
 	exit 2
-elif [ "$folderSize" -ge "$warnThresh" ]; then
-	printf "WARNING - folder is $folderSize MB in size | folderSize=$folderSize;\n"
+elif [ "$folderSize" -ge "$warnThresh" ]
+then
+	printf "WARNING - folder is $folderSize $blockSizeFriendly in size | folderSize=$folderSize;\n"
 	exit 1
 fi
 
-printf "OK - folder is $folderSize MB in size | folderSize=$folderSize;\n"
+printf "OK - folder is $folderSize $blockSizeFriendly in size | folderSize=$folderSize;\n"
 exit 0
