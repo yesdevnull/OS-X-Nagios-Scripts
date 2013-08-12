@@ -44,7 +44,7 @@ smartoncmd=`/opt/local/libexec/nagios/smartctl --smart=on --saveauto=on $disk`
 
 resultString=`/opt/local/libexec/nagios/smartctl -H $disk`
 
-if [ "$graphs" != "" ]
+if echo $graphs | grep -q -E "[A-Za-z ]+"
 then
 	graphString="|"
 fi
